@@ -34,7 +34,8 @@ def load_nashville_311():
     with engine.connect() as connection:
         result = connection.execute(
             text(
-                f"SELECT COUNT(*) FROM {table_name}"
+                "SELECT COUNT(*) "
+                "FROM nashville_311"
             )
         )
 

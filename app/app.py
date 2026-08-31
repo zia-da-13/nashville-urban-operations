@@ -1,7 +1,27 @@
-import streamlit as st
-import pandas as pd
+import sys
 from pathlib import Path
 
+import streamlit as st
+import pandas as pd
+from sqlalchemy import text
+
+
+# -----------------------------
+# Project Path Setup
+# -----------------------------
+
+project_root = Path(__file__).resolve().parents[1]
+
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+
+from src.database.database_connection import get_database_engine
+
+
+# -----------------------------
+# Streamlit Configuration
+# -----------------------------
 
 st.set_page_config(
     page_title="Nashville Urban Operations Intelligence Platform",
@@ -10,18 +30,23 @@ st.set_page_config(
 )
 
 
+# -----------------------------
+# Load Data from Database
+# -----------------------------
+
 @st.cache_data
 def load_data():
-    project_root = Path(__file__).resolve().parents[1]
+    engine = get_database_engine()
 
-    data_file = (
-        project_root
-        / "data"
-        / "processed"
-        / "nashville_311_clean.csv"
+    query = text(
+        "SELECT * FROM nashville_311"
     )
 
-    dataframe = pd.read_csv(data_file)
+    with engine.connect() as connection:
+        dataframe = pd.read_sql(
+            query,
+            connection
+        )
 
     dataframe["Date_Time_Opened"] = pd.to_datetime(
         dataframe["Date_Time_Opened"],
@@ -40,16 +65,36 @@ def load_data():
         .str.zfill(2)
     )
 
+    dataframe["Latitude"] = pd.to_numeric(
+        dataframe["Latitude"],
+        errors="coerce"
+    )
+
+    dataframe["Longitude"] = pd.to_numeric(
+        dataframe["Longitude"],
+        errors="coerce"
+    )
+
     return dataframe
 
 
 dataframe = load_data()
 
 
-st.title("Nashville Urban Operations Intelligence Platform")
+# -----------------------------
+# Dashboard Header
+# -----------------------------
+
+st.title(
+    "Nashville Urban Operations Intelligence Platform"
+)
 
 st.write(
     "Interactive analysis of Nashville 311 service requests."
+)
+
+st.caption(
+    "Data source: Nashville 311 SQLite database"
 )
 
 
@@ -159,8 +204,13 @@ if selected_council_district != "All":
 
 
 if len(selected_date_range) == 2:
-    start_date = pd.Timestamp(selected_date_range[0])
-    end_date = pd.Timestamp(selected_date_range[1])
+    start_date = pd.Timestamp(
+        selected_date_range[0]
+    )
+
+    end_date = pd.Timestamp(
+        selected_date_range[1]
+    )
 
     filtered_dataframe = filtered_dataframe[
         (
@@ -179,9 +229,11 @@ if len(selected_date_range) == 2:
 # Dashboard Metrics
 # -----------------------------
 
-st.subheader("311 Service Request Overview")
+st.subheader(
+    "311 Service Request Overview"
+)
 
-column1, column2, column3 = st.columns(3)
+column1, column2, column3, column4 = st.columns(4)
 
 
 with column1:
@@ -207,6 +259,21 @@ with column2:
 
 
 with column3:
+    closed_requests = (
+        filtered_dataframe["Status"]
+        .astype(str)
+        .str.lower()
+        .eq("closed")
+        .sum()
+    )
+
+    st.metric(
+        "Closed Requests",
+        closed_requests
+    )
+
+
+with column4:
     request_type_count = (
         filtered_dataframe["Request_Type"]
         .nunique()
@@ -222,10 +289,60 @@ st.divider()
 
 
 # -----------------------------
+# Nashville 311 Map
+# -----------------------------
+
+st.subheader(
+    "Nashville 311 Service Request Map"
+)
+
+st.write(
+    "Each point represents a service request "
+    "with a valid geographic location."
+)
+
+
+map_dataframe = filtered_dataframe[
+    [
+        "Latitude",
+        "Longitude"
+    ]
+].dropna()
+
+
+if not map_dataframe.empty:
+
+    st.map(
+        map_dataframe,
+        latitude="Latitude",
+        longitude="Longitude",
+        use_container_width=True
+    )
+
+    st.caption(
+        f"Mapped service requests: "
+        f"{len(map_dataframe):,}"
+    )
+
+else:
+
+    st.info(
+        "No geographic locations are available "
+        "for the selected filters."
+    )
+
+
+st.divider()
+
+
+# -----------------------------
 # Requests Over Time
 # -----------------------------
 
-st.subheader("Requests Over Time")
+st.subheader(
+    "Requests Over Time"
+)
+
 
 requests_over_time = (
     filtered_dataframe
@@ -236,11 +353,21 @@ requests_over_time = (
     .reset_index(name="Total Requests")
 )
 
-st.line_chart(
-    requests_over_time,
-    x="Date_Time_Opened",
-    y="Total Requests"
-)
+
+if not requests_over_time.empty:
+
+    st.line_chart(
+        requests_over_time,
+        x="Date_Time_Opened",
+        y="Total Requests"
+    )
+
+else:
+
+    st.info(
+        "No request data is available "
+        "for the selected date range."
+    )
 
 
 st.divider()
@@ -250,7 +377,10 @@ st.divider()
 # Requests by Type
 # -----------------------------
 
-st.subheader("Service Requests by Type")
+st.subheader(
+    "Service Requests by Type"
+)
+
 
 request_type_counts = (
     filtered_dataframe["Request_Type"]
@@ -264,11 +394,20 @@ request_type_counts.columns = [
 ]
 
 
-st.bar_chart(
-    request_type_counts,
-    x="Request Type",
-    y="Total Requests"
-)
+if not request_type_counts.empty:
+
+    st.bar_chart(
+        request_type_counts,
+        x="Request Type",
+        y="Total Requests"
+    )
+
+else:
+
+    st.info(
+        "No request types are available "
+        "for the selected filters."
+    )
 
 
 st.divider()
@@ -278,7 +417,9 @@ st.divider()
 # Data Table
 # -----------------------------
 
-st.subheader("311 Service Request Data")
+st.subheader(
+    "311 Service Request Data"
+)
 
 
 display_columns = [
@@ -286,9 +427,12 @@ display_columns = [
     "Status",
     "Request_Type",
     "Subrequest_Type",
+    "Address",
     "City",
     "Council_District",
     "ZIP",
+    "Latitude",
+    "Longitude",
     "Date_Time_Opened",
     "Date_Time_Closed"
 ]
