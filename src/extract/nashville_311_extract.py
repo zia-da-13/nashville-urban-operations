@@ -16,22 +16,30 @@ def extract_nashville_311():
         "where": "1=1",
         "outFields": "*",
         "f": "json",
-        "resultRecordCount": 100
+        "resultRecordCount": 10000,
+        "orderByFields": "OBJECTID DESC"
     }
+
+    print("Downloading recent Nashville 311 records...")
 
     response = requests.get(
         API_URL,
         params=parameters,
-        timeout=30
+        timeout=120
     )
 
     response.raise_for_status()
 
     data = response.json()
 
+    if "error" in data:
+        raise RuntimeError(
+            f"ArcGIS API error: {data['error']}"
+        )
+
     records = [
         feature["attributes"]
-        for feature in data["features"]
+        for feature in data.get("features", [])
     ]
 
     dataframe = pd.DataFrame(records)
@@ -60,10 +68,9 @@ def save_raw_data(dataframe):
 if __name__ == "__main__":
     nashville_311_data = extract_nashville_311()
 
-    print("Nashville 311 data extracted successfully.")
     print()
-    print(nashville_311_data.head())
+    print("Nashville 311 extraction completed.")
+    print(f"Total rows extracted: {len(nashville_311_data)}")
     print()
-    print(f"Rows extracted: {len(nashville_311_data)}")
 
     save_raw_data(nashville_311_data)
