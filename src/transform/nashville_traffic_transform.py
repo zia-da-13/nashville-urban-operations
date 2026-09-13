@@ -135,10 +135,13 @@ def transform_nashville_traffic():
 
 
     # -----------------------------
-    # Results
+    # Display Results
     # -----------------------------
 
-    print("Nashville traffic data transformed successfully.")
+    print(
+        "Nashville traffic data transformed successfully."
+    )
+
     print()
 
     print(
@@ -152,13 +155,20 @@ def transform_nashville_traffic():
     )
 
     print()
+
     print("Cleaned columns:")
-    print(cleaned_dataframe.columns.tolist())
+    print(
+        cleaned_dataframe.columns.tolist()
+    )
 
     print()
-    print(cleaned_dataframe.head())
+
+    print(
+        cleaned_dataframe.head()
+    )
 
     print()
+
     print(
         f"Clean data saved to: {output_file}"
     )
