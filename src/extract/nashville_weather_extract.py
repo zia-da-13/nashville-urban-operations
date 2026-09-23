@@ -3,9 +3,12 @@ import pandas as pd
 from pathlib import Path
 
 
+NASHVILLE_LATITUDE = 36.1627
+NASHVILLE_LONGITUDE = -86.7816
+
 POINTS_URL = (
     "https://api.weather.gov/points/"
-    "36.1627,-86.7816"
+    f"{NASHVILLE_LATITUDE},{NASHVILLE_LONGITUDE}"
 )
 
 HEADERS = {
@@ -87,7 +90,9 @@ def extract_nashville_weather():
             ),
             "Short_Forecast": period.get(
                 "shortForecast"
-            )
+            ),
+            "Latitude": NASHVILLE_LATITUDE,
+            "Longitude": NASHVILLE_LONGITUDE
         }
 
         records.append(record)
@@ -141,7 +146,6 @@ if __name__ == "__main__":
     )
 
     print()
-
     print(
         nashville_weather_data.head()
     )
