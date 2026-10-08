@@ -61,7 +61,9 @@ def load_weather_data():
     numeric_columns = [
         "Temperature",
         "Precipitation_Probability",
-        "Wind_Speed_MPH"
+        "Wind_Speed_MPH",
+        "Latitude",
+        "Longitude"
     ]
 
     for column in numeric_columns:
@@ -93,7 +95,8 @@ st.write(
 )
 
 st.caption(
-    "Weather data stored in the Nashville weather SQLite table."
+    "Weather forecast data stored in the "
+    "Nashville weather SQLite table."
 )
 
 
@@ -212,6 +215,107 @@ with column4:
 
         st.metric(
             "Conditions",
+            "N/A"
+        )
+
+
+st.divider()
+
+
+# -----------------------------
+# Nashville Weather Map
+# -----------------------------
+
+st.subheader(
+    "Nashville Weather Map"
+)
+
+map_dataframe = weather_dataframe[
+    [
+        "Latitude",
+        "Longitude"
+    ]
+].dropna().drop_duplicates()
+
+
+if not map_dataframe.empty:
+
+    st.map(
+        map_dataframe,
+        latitude="Latitude",
+        longitude="Longitude",
+        zoom=10,
+        use_container_width=True
+    )
+
+    st.caption(
+        "The map marker represents the Nashville "
+        "location used to retrieve the National "
+        "Weather Service hourly forecast."
+    )
+
+else:
+
+    st.info(
+        "No weather location coordinates "
+        "are available."
+    )
+
+
+st.divider()
+
+
+# -----------------------------
+# Forecast Location
+# -----------------------------
+
+st.subheader(
+    "Forecast Location"
+)
+
+location_column1, location_column2 = (
+    st.columns(2)
+)
+
+
+with location_column1:
+
+    latitude = current_forecast[
+        "Latitude"
+    ]
+
+    if pd.notna(latitude):
+
+        st.metric(
+            "Latitude",
+            f"{latitude:.4f}"
+        )
+
+    else:
+
+        st.metric(
+            "Latitude",
+            "N/A"
+        )
+
+
+with location_column2:
+
+    longitude = current_forecast[
+        "Longitude"
+    ]
+
+    if pd.notna(longitude):
+
+        st.metric(
+            "Longitude",
+            f"{longitude:.4f}"
+        )
+
+    else:
+
+        st.metric(
+            "Longitude",
             "N/A"
         )
 
@@ -406,7 +510,9 @@ display_columns = [
     "Precipitation_Probability",
     "Wind_Speed_MPH",
     "Wind_Direction",
-    "Short_Forecast"
+    "Short_Forecast",
+    "Latitude",
+    "Longitude"
 ]
 
 
