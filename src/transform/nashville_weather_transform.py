@@ -27,15 +27,7 @@ def transform_nashville_weather():
     print()
 
     # -----------------------------
-    # Remove Duplicate Records
-    # -----------------------------
-
-    dataframe = dataframe.drop_duplicates(
-        subset=["Forecast_Number"]
-    )
-
-    # -----------------------------
-    # Convert Date and Time Fields
+    # Convert Date and Time
     # -----------------------------
 
     dataframe["Start_Time"] = pd.to_datetime(
@@ -49,34 +41,51 @@ def transform_nashville_weather():
     )
 
     # -----------------------------
-    # Convert Numeric Fields
+    # Convert Temperature
     # -----------------------------
 
-    numeric_columns = [
-        "Forecast_Number",
-        "Temperature",
-        "Precipitation_Probability"
-    ]
+    dataframe["Temperature"] = pd.to_numeric(
+        dataframe["Temperature"],
+        errors="coerce"
+    )
 
-    for column in numeric_columns:
-        dataframe[column] = pd.to_numeric(
-            dataframe[column],
+    # -----------------------------
+    # Convert Precipitation
+    # -----------------------------
+
+    dataframe["Precipitation_Probability"] = (
+        pd.to_numeric(
+            dataframe["Precipitation_Probability"],
             errors="coerce"
         )
+    )
 
     # -----------------------------
-    # Extract Wind Speed Number
+    # Clean Wind Speed
     # -----------------------------
 
     dataframe["Wind_Speed_MPH"] = (
         dataframe["Wind_Speed"]
         .astype("string")
-        .str.extract(r"(\d+)")
-        [0]
+        .str.extract(r"(\d+)", expand=False)
     )
 
     dataframe["Wind_Speed_MPH"] = pd.to_numeric(
         dataframe["Wind_Speed_MPH"],
+        errors="coerce"
+    )
+
+    # -----------------------------
+    # Convert Map Coordinates
+    # -----------------------------
+
+    dataframe["Latitude"] = pd.to_numeric(
+        dataframe["Latitude"],
+        errors="coerce"
+    )
+
+    dataframe["Longitude"] = pd.to_numeric(
+        dataframe["Longitude"],
         errors="coerce"
     )
 
@@ -94,12 +103,37 @@ def transform_nashville_weather():
             "Precipitation_Probability",
             "Wind_Speed_MPH",
             "Wind_Direction",
-            "Short_Forecast"
+            "Short_Forecast",
+            "Latitude",
+            "Longitude"
         ]
     ].copy()
 
     # -----------------------------
-    # Save Cleaned Data
+    # Remove Duplicate Forecasts
+    # -----------------------------
+
+    cleaned_dataframe = (
+        cleaned_dataframe.drop_duplicates(
+            subset=[
+                "Forecast_Number",
+                "Start_Time"
+            ]
+        )
+    )
+
+    # -----------------------------
+    # Sort Forecast
+    # -----------------------------
+
+    cleaned_dataframe = (
+        cleaned_dataframe.sort_values(
+            by="Start_Time"
+        )
+    )
+
+    # -----------------------------
+    # Save Clean Data
     # -----------------------------
 
     cleaned_dataframe.to_csv(
@@ -112,7 +146,8 @@ def transform_nashville_weather():
     # -----------------------------
 
     print(
-        "Nashville weather data transformed successfully."
+        "Nashville weather data "
+        "transformed successfully."
     )
 
     print()
@@ -130,6 +165,7 @@ def transform_nashville_weather():
     print()
 
     print("Cleaned columns:")
+
     print(
         cleaned_dataframe.columns.tolist()
     )
