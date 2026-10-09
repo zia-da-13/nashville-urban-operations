@@ -30,6 +30,16 @@ def load_nashville_transit():
         / "nashville_transit_trips.csv"
     )
 
+    stop_times_file = (
+        processed_folder
+        / "nashville_transit_stop_times.csv"
+    )
+
+    shapes_file = (
+        processed_folder
+        / "nashville_transit_shapes.csv"
+    )
+
     # -----------------------------
     # Read Processed Data
     # -----------------------------
@@ -50,6 +60,14 @@ def load_nashville_transit():
         trips_file
     )
 
+    stop_times_dataframe = pd.read_csv(
+        stop_times_file
+    )
+
+    shapes_dataframe = pd.read_csv(
+        shapes_file
+    )
+
     # -----------------------------
     # Database Connection
     # -----------------------------
@@ -60,12 +78,8 @@ def load_nashville_transit():
     # Load Routes
     # -----------------------------
 
-    routes_table = (
-        "nashville_transit_routes"
-    )
-
     routes_dataframe.to_sql(
-        routes_table,
+        "nashville_transit_routes",
         engine,
         if_exists="replace",
         index=False
@@ -77,19 +91,15 @@ def load_nashville_transit():
     )
 
     print(
-        f"Rows loaded: {len(routes_dataframe)}"
+        f"Rows loaded: {len(routes_dataframe):,}"
     )
 
     # -----------------------------
     # Load Stops
     # -----------------------------
 
-    stops_table = (
-        "nashville_transit_stops"
-    )
-
     stops_dataframe.to_sql(
-        stops_table,
+        "nashville_transit_stops",
         engine,
         if_exists="replace",
         index=False
@@ -101,19 +111,15 @@ def load_nashville_transit():
     )
 
     print(
-        f"Rows loaded: {len(stops_dataframe)}"
+        f"Rows loaded: {len(stops_dataframe):,}"
     )
 
     # -----------------------------
     # Load Trips
     # -----------------------------
 
-    trips_table = (
-        "nashville_transit_trips"
-    )
-
     trips_dataframe.to_sql(
-        trips_table,
+        "nashville_transit_trips",
         engine,
         if_exists="replace",
         index=False
@@ -125,67 +131,89 @@ def load_nashville_transit():
     )
 
     print(
-        f"Rows loaded: {len(trips_dataframe)}"
+        f"Rows loaded: {len(trips_dataframe):,}"
+    )
+
+    # -----------------------------
+    # Load Stop Times
+    # -----------------------------
+
+    stop_times_dataframe.to_sql(
+        "nashville_transit_stop_times",
+        engine,
+        if_exists="replace",
+        index=False
+    )
+
+    print()
+    print(
+        "Transit stop times loaded into database."
+    )
+
+    print(
+        f"Rows loaded: "
+        f"{len(stop_times_dataframe):,}"
+    )
+
+    # -----------------------------
+    # Load Shapes
+    # -----------------------------
+
+    shapes_dataframe.to_sql(
+        "nashville_transit_shapes",
+        engine,
+        if_exists="replace",
+        index=False
+    )
+
+    print()
+    print(
+        "Transit route shapes loaded into database."
+    )
+
+    print(
+        f"Rows loaded: "
+        f"{len(shapes_dataframe):,}"
     )
 
     # -----------------------------
     # Verify Database Tables
     # -----------------------------
 
-    with engine.connect() as connection:
-
-        routes_result = connection.execute(
-            text(
-                "SELECT COUNT(*) "
-                "FROM nashville_transit_routes"
-            )
-        )
-
-        routes_count = (
-            routes_result.scalar()
-        )
-
-        stops_result = connection.execute(
-            text(
-                "SELECT COUNT(*) "
-                "FROM nashville_transit_stops"
-            )
-        )
-
-        stops_count = (
-            stops_result.scalar()
-        )
-
-        trips_result = connection.execute(
-            text(
-                "SELECT COUNT(*) "
-                "FROM nashville_transit_trips"
-            )
-        )
-
-        trips_count = (
-            trips_result.scalar()
-        )
-
-    # -----------------------------
-    # Display Verification
-    # -----------------------------
+    table_names = [
+        "nashville_transit_routes",
+        "nashville_transit_stops",
+        "nashville_transit_trips",
+        "nashville_transit_stop_times",
+        "nashville_transit_shapes"
+    ]
 
     print()
     print(
-        "Database verification completed."
+        "Database verification:"
     )
 
-    print(
-        f"Routes verified: {routes_count}"
-    )
+    with engine.connect() as connection:
 
-    print(
-        f"Stops verified: {stops_count}"
-    )
+        for table_name in table_names:
 
+            result = connection.execute(
+                text(
+                    f"SELECT COUNT(*) "
+                    f"FROM {table_name}"
+                )
+            )
+
+            row_count = result.scalar()
+
+            print(
+                f"{table_name}: "
+                f"{row_count:,} rows"
+            )
+
+    print()
     print(
-        f"Trips verified: {trips_count}"
+        "WeGo transit database load completed."
     )
 
 
