@@ -43,6 +43,16 @@ def transform_nashville_transit():
         / "trips.txt"
     )
 
+    stop_times_file = (
+        raw_folder
+        / "stop_times.txt"
+    )
+
+    shapes_file = (
+        raw_folder
+        / "shapes.txt"
+    )
+
     # -----------------------------
     # Load GTFS Data
     # -----------------------------
@@ -66,66 +76,56 @@ def transform_nashville_transit():
         dtype=str
     )
 
-    print()
+    stop_times_dataframe = pd.read_csv(
+        stop_times_file,
+        dtype=str
+    )
 
+    shapes_dataframe = pd.read_csv(
+        shapes_file,
+        dtype=str
+    )
+
+    print()
     print(
         f"Routes loaded: "
-        f"{len(routes_dataframe)}"
+        f"{len(routes_dataframe):,}"
     )
 
     print(
         f"Stops loaded: "
-        f"{len(stops_dataframe)}"
+        f"{len(stops_dataframe):,}"
     )
 
     print(
         f"Trips loaded: "
-        f"{len(trips_dataframe)}"
+        f"{len(trips_dataframe):,}"
     )
 
-    # -----------------------------
-    # Display Original Columns
-    # -----------------------------
-
-    print()
-    print("Routes columns:")
     print(
-        routes_dataframe.columns.tolist()
+        f"Stop times loaded: "
+        f"{len(stop_times_dataframe):,}"
     )
 
-    print()
-    print("Stops columns:")
     print(
-        stops_dataframe.columns.tolist()
-    )
-
-    print()
-    print("Trips columns:")
-    print(
-        trips_dataframe.columns.tolist()
+        f"Shape points loaded: "
+        f"{len(shapes_dataframe):,}"
     )
 
     # -----------------------------
     # Transform Routes
     # -----------------------------
 
-    route_columns = [
-        "route_id",
-        "route_short_name",
-        "route_long_name",
-        "route_type"
-    ]
-
-    available_route_columns = [
-        column
-        for column in route_columns
-        if column in routes_dataframe.columns
-    ]
-
     cleaned_routes_dataframe = (
         routes_dataframe[
-            available_route_columns
-        ].copy()
+            [
+                "route_id",
+                "route_short_name",
+                "route_long_name",
+                "route_type"
+            ]
+        ]
+        .copy()
     )
 
     cleaned_routes_dataframe = (
@@ -150,23 +150,16 @@ def transform_nashville_transit():
     # Transform Stops
     # -----------------------------
 
-    stop_columns = [
-        "stop_id",
-        "stop_name",
-        "stop_lat",
-        "stop_lon"
-    ]
-
-    available_stop_columns = [
-        column
-        for column in stop_columns
-        if column in stops_dataframe.columns
-    ]
-
     cleaned_stops_dataframe = (
         stops_dataframe[
-            available_stop_columns
-        ].copy()
+            [
+                "stop_id",
+                "stop_name",
+                "stop_lat",
+                "stop_lon"
+            ]
+        ]
+        .copy()
     )
 
     cleaned_stops_dataframe = (
@@ -217,16 +210,16 @@ def transform_nashville_transit():
         "direction_id"
     ]
 
-    available_trip_columns = [
-        column
-        for column in trip_columns
-        if column in trips_dataframe.columns
-    ]
+    if "shape_id" in trips_dataframe.columns:
+        trip_columns.append(
+            "shape_id"
+        )
 
     cleaned_trips_dataframe = (
         trips_dataframe[
-            available_trip_columns
-        ].copy()
+            trip_columns
+        ]
+        .copy()
     )
 
     cleaned_trips_dataframe = (
@@ -243,8 +236,142 @@ def transform_nashville_transit():
                 "service_id": "Service_ID",
                 "trip_id": "Trip_ID",
                 "trip_headsign": "Trip_Headsign",
-                "direction_id": "Direction_ID"
+                "direction_id": "Direction_ID",
+                "shape_id": "Shape_ID"
             }
+        )
+    )
+
+    # -----------------------------
+    # Transform Stop Times
+    # -----------------------------
+
+    cleaned_stop_times_dataframe = (
+        stop_times_dataframe[
+            [
+                "trip_id",
+                "arrival_time",
+                "departure_time",
+                "stop_id",
+                "stop_sequence"
+            ]
+        ]
+        .copy()
+    )
+
+    cleaned_stop_times_dataframe[
+        "stop_sequence"
+    ] = pd.to_numeric(
+        cleaned_stop_times_dataframe[
+            "stop_sequence"
+        ],
+        errors="coerce"
+    )
+
+    cleaned_stop_times_dataframe = (
+        cleaned_stop_times_dataframe.rename(
+            columns={
+                "trip_id": "Trip_ID",
+                "arrival_time": "Arrival_Time",
+                "departure_time": "Departure_Time",
+                "stop_id": "Stop_ID",
+                "stop_sequence": "Stop_Sequence"
+            }
+        )
+    )
+
+    cleaned_stop_times_dataframe = (
+        cleaned_stop_times_dataframe
+        .sort_values(
+            by=[
+                "Trip_ID",
+                "Stop_Sequence"
+            ]
+        )
+    )
+
+    # -----------------------------
+    # Transform Shapes
+    # -----------------------------
+
+    cleaned_shapes_dataframe = (
+        shapes_dataframe[
+            [
+                "shape_id",
+                "shape_pt_lat",
+                "shape_pt_lon",
+                "shape_pt_sequence",
+                "shape_dist_traveled"
+            ]
+        ]
+        .copy()
+    )
+
+    cleaned_shapes_dataframe[
+        "shape_pt_lat"
+    ] = pd.to_numeric(
+        cleaned_shapes_dataframe[
+            "shape_pt_lat"
+        ],
+        errors="coerce"
+    )
+
+    cleaned_shapes_dataframe[
+        "shape_pt_lon"
+    ] = pd.to_numeric(
+        cleaned_shapes_dataframe[
+            "shape_pt_lon"
+        ],
+        errors="coerce"
+    )
+
+    cleaned_shapes_dataframe[
+        "shape_pt_sequence"
+    ] = pd.to_numeric(
+        cleaned_shapes_dataframe[
+            "shape_pt_sequence"
+        ],
+        errors="coerce"
+    )
+
+    cleaned_shapes_dataframe[
+        "shape_dist_traveled"
+    ] = pd.to_numeric(
+        cleaned_shapes_dataframe[
+            "shape_dist_traveled"
+        ],
+        errors="coerce"
+    )
+
+    cleaned_shapes_dataframe = (
+        cleaned_shapes_dataframe.rename(
+            columns={
+                "shape_id": "Shape_ID",
+                "shape_pt_lat": "Latitude",
+                "shape_pt_lon": "Longitude",
+                "shape_pt_sequence": "Shape_Point_Sequence",
+                "shape_dist_traveled": "Shape_Distance_Traveled"
+            }
+        )
+    )
+
+    cleaned_shapes_dataframe = (
+        cleaned_shapes_dataframe
+        .dropna(
+            subset=[
+                "Latitude",
+                "Longitude"
+            ]
+        )
+    )
+
+    cleaned_shapes_dataframe = (
+        cleaned_shapes_dataframe
+        .sort_values(
+            by=[
+                "Shape_ID",
+                "Shape_Point_Sequence"
+            ]
         )
     )
 
@@ -267,6 +394,16 @@ def transform_nashville_transit():
         / "nashville_transit_trips.csv"
     )
 
+    stop_times_output_file = (
+        processed_folder
+        / "nashville_transit_stop_times.csv"
+    )
+
+    shapes_output_file = (
+        processed_folder
+        / "nashville_transit_shapes.csv"
+    )
+
     # -----------------------------
     # Save Clean Data
     # -----------------------------
@@ -286,6 +423,16 @@ def transform_nashville_transit():
         index=False
     )
 
+    cleaned_stop_times_dataframe.to_csv(
+        stop_times_output_file,
+        index=False
+    )
+
+    cleaned_shapes_dataframe.to_csv(
+        shapes_output_file,
+        index=False
+    )
+
     # -----------------------------
     # Display Results
     # -----------------------------
@@ -297,34 +444,29 @@ def transform_nashville_transit():
     )
 
     print()
-
     print(
         f"Clean routes: "
-        f"{len(cleaned_routes_dataframe)}"
+        f"{len(cleaned_routes_dataframe):,}"
     )
 
     print(
         f"Clean stops: "
-        f"{len(cleaned_stops_dataframe)}"
+        f"{len(cleaned_stops_dataframe):,}"
     )
 
     print(
         f"Clean trips: "
-        f"{len(cleaned_trips_dataframe)}"
+        f"{len(cleaned_trips_dataframe):,}"
     )
 
-    print()
-
-    print("Clean route columns:")
     print(
-        cleaned_routes_dataframe.columns.tolist()
+        f"Clean stop times: "
+        f"{len(cleaned_stop_times_dataframe):,}"
     )
 
-    print()
-
-    print("Clean stop columns:")
     print(
-        cleaned_stops_dataframe.columns.tolist()
+        f"Clean shape points: "
+        f"{len(cleaned_shapes_dataframe):,}"
     )
 
     print()
@@ -336,23 +478,30 @@ def transform_nashville_transit():
 
     print()
 
-    print("Sample routes:")
+    print("Clean stop time columns:")
     print(
-        cleaned_routes_dataframe.head()
+        cleaned_stop_times_dataframe.columns.tolist()
     )
 
     print()
 
-    print("Sample stops:")
+    print("Clean shape columns:")
     print(
-        cleaned_stops_dataframe.head()
+        cleaned_shapes_dataframe.columns.tolist()
     )
 
     print()
 
-    print("Sample trips:")
+    print("Sample stop times:")
     print(
-        cleaned_trips_dataframe.head()
+        cleaned_stop_times_dataframe.head()
+    )
+
+    print()
+
+    print("Sample shape points:")
+    print(
+        cleaned_shapes_dataframe.head()
     )
 
     print()
