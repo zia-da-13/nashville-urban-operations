@@ -66,6 +66,7 @@ def extract_nashville_transit():
             "stops.txt",
             "trips.txt",
             "stop_times.txt",
+            "shapes.txt",
             "calendar.txt",
             "calendar_dates.txt"
         ]
